@@ -21,16 +21,45 @@
 //   "content": "your-original-prompt"
 // }
 import { firestore } from '../../db';
-import { addDoc, collection } from 'firebase/firestore';
+import { auth } from '../../db';
+import { addDoc, collection, getDoc, doc, setDoc, updateDoc } from 'firebase/firestore';
 
 export default async function handler(req: any, res: any) {
-  const { imageUrl } = req.body as any;
+  const { imageUrl, originatingMessageId } = req.body as any;
   console.log(req.body);
 
-  await addDoc(collection(firestore, 'imgs'), {
-    imgUrl: imageUrl,
-    createdAt: new Date(), // serverTimestamp() -> Not all clients will have the same time
+  if (originatingMessageId == null || imageUrl == null) {
+    res.status(200).json({ result: false });
+    return
+  }
+
+  // Store image url in the original request
+  const docRef = doc(firestore, "requestIds", originatingMessageId);
+  await updateDoc(docRef, {
+    imageUrl: imageUrl,
+    createdAt: new Date(),
   });
 
-  res.status(200).json({ name: 'John Doe' });
+  // Update for user
+  const docSnap = await getDoc(docRef);
+  if (docSnap.exists()) {
+    console.log(docSnap.data());
+    const { uid } = docSnap.data();
+
+    // Save to user's requestIds
+    await setDoc(doc(firestore, `/users/${uid}/requestIds`, originatingMessageId), {
+      imageUrl: imageUrl,
+      createdAt: new Date(),
+    }, { merge: true });
+
+    // Create a new image to user's images collection
+    await addDoc(collection(firestore, `/users/${uid}/images`), {
+      imageUrl: imageUrl,
+      createdAt: new Date(),
+    });
+
+    res.status(200).json({ result: true });
+  } else {
+    res.status(200).json({ result: false });
+  }
 }
