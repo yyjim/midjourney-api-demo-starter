@@ -1,6 +1,7 @@
 'use client'; // this is a client component 👈🏽
 import axios from 'axios';
 import { firestore, auth } from '../db';
+import { sendImagineAPIAndSave } from './api/txt2img';
 import { collection, doc, onSnapshot, setDoc, getDocs } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "firebase/auth";
@@ -9,20 +10,10 @@ const AUTH_TOKEN = '';
 const endpoint = `https://api.thenextleg.io`;
 
 export default function Home() {
-  const [text, setText] = useState('');
-  const [imgs, setImgs] = useState<{ createdAt: any; url: string }[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [response, setResponse] = useState('');
+  const [imgs, setImgs] = useState<{ createdAt: any; imageUrl: string }[]>([]);
   const [user, setUser] = useState<any>();
 
   useEffect(() => {
-    // onSnapshot(collection(firestore, 'imgs'), snapshot => {
-    //   let allImgs: { createdAt: any; url: string }[] = snapshot.docs.map(
-    //     doc => doc.data(),
-    //   ) as any;
-    //   setImgs(allImgs);
-    // });
     onAuthStateChanged(auth, (user) => {
       setUser(user);
       if (user) {
@@ -30,13 +21,22 @@ export default function Home() {
       } else {
         setImgs([]);
       }
+
+      if (user != null) {
+        onSnapshot(collection(firestore, `users/${user.uid}/images`), snapshot => {
+          let allImgs: { createdAt: any; imageUrl: string }[] = snapshot.docs.map(
+            doc => doc.data(),
+          ) as any;
+          setImgs(allImgs);
+        });
+      }
     });
   }, []);
 
   const fetchImages = async (user: any) => {
     console.log(`${user.uid}`);
     const snapshot = await getDocs(collection(firestore, `/users/${user.uid}/images`));
-    let allImgs: { createdAt: any; url: string }[] = snapshot.docs.map((doc) => {
+    let allImgs: { createdAt: any; imageUrl: string }[] = snapshot.docs.map((doc) => {
       console.log(doc.id, " => ", doc.data());
       return doc.data();
     }) as any;
@@ -86,7 +86,37 @@ export default function Home() {
     );
   }
 
+  const Form = () => {
+    const [text, setText] = useState("")
+
+    interface FormDataType { text: string }
+    const responseBody: FormDataType = { text: "" }
+
+    const onSubmitHandler = async (event: React.FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      // responseBody.text = text
+      // console.log(JSON.stringify(responseBody))
+      await sendImagineAPIAndSave(text, user.uid);
+    }
+
+    const inputChangeHandler = (setFunction: React.Dispatch<React.SetStateAction<string>>, event: React.ChangeEvent<HTMLInputElement>) => {
+      setFunction(event.target.value)
+    }
+
+    return (
+      <form onSubmit={onSubmitHandler}>
+        <div><input id="tttt" onChange={(e) => inputChangeHandler(setText, e)} type="text" placeholder='Enter your prompt here' /></div>
+        <input type="submit" />
+      </form>
+    )
+  }
+
   const HomeView = () => {
+    const [text, setText] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [response, setResponse] = useState('');
+
     return (
       <>
         <div>
@@ -101,6 +131,7 @@ export default function Home() {
             Prompt
           </label>
           <div className='mt-2 flex space-x-2'>
+            {/* (<Form></Form>) */}
             <input
               value={text}
               onChange={e => setText(e.target.value)}
@@ -112,27 +143,28 @@ export default function Home() {
               onClick={async () => {
                 console.log(`Submitting my prompt: ${text}`);
                 setLoading(true);
-                try {
-                  let headers = {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${AUTH_TOKEN}`,
-                  };
+                await sendImagineAPIAndSave(text, user.uid);
+                // try {
+                //   let headers = {
+                //     'Content-Type': 'application/json',
+                //     Authorization: `Bearer ${AUTH_TOKEN}`,
+                //   };
 
-                  let r = await axios.post(
-                    `${endpoint}`,
-                    {
-                      cmd: 'imagine',
-                      msg: text,
-                    },
-                    { headers },
-                  );
+                //   let r = await axios.post(
+                //     `${endpoint}`,
+                //     {
+                //       cmd: 'imagine',
+                //       msg: text,
+                //     },
+                //     { headers },
+                //   );
 
-                  console.log(r.data);
-                  setResponse(JSON.stringify(r.data, null, 2));
-                } catch (e: any) {
-                  console.log(e);
-                  setError(e.message);
-                }
+                //   console.log(r.data);
+                //   setResponse(JSON.stringify(r.data, null, 2));
+                // } catch (e: any) {
+                //   console.log(e);
+                //   setError(e.message);
+                // }
                 setLoading(false);
               }}
             >
@@ -146,20 +178,13 @@ export default function Home() {
           <h1 className='text-4xl py-8'>These are your images!</h1>
           <div className='grid grid-cols-3 gap-4'>
             {imgs.map(img => (
-              <img
-                src={img.url}
-                className='w-full'
-                key={img.url}
-                alt='nothing'
-              />
+              <img src={img.imageUrl} className='w-full' key={img.imageUrl} alt='nothing' />
             ))}
           </div>
         </div>
       </>
     );
   }
-
-  console.log(auth);
 
   return (
     <div className='container mx-auto h-screen flex flex-col items-center justify-center '>

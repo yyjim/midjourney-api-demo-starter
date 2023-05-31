@@ -13,6 +13,11 @@ interface ImagineResponse {
     createdAt: Date;
 }
 
+export async function sendImagineAPIAndSave(prompt: string, uid: string): Promise<any> {
+    const { messageId, createdAt } = await sendImagineAPI(prompt, uid);
+    return await saveToFirestore(messageId, createdAt, uid);
+}
+
 async function sendImagineAPI(prompt: string, uid: string): Promise<ImagineResponse> {
     try {
         const headers = {
