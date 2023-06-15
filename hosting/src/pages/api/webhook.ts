@@ -53,10 +53,15 @@ export default async function handler(req: any, res: any) {
     }, { merge: true });
 
     // Create a new image to user's images collection
-    await addDoc(collection(firestore, `/users/${uid}/images`), {
+    // await addDoc(collection(firestore, `/users/${uid}/images`), {
+    //   imageUrl: imageUrl,
+    //   createdAt: new Date(),
+    // });
+
+    await setDoc(doc(firestore, `/users/${uid}/images`, originatingMessageId), {
       imageUrl: imageUrl,
       createdAt: new Date(),
-    });
+    }, { merge: true });
 
     res.status(200).json({ result: true });
   } else {

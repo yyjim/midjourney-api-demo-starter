@@ -46,6 +46,10 @@ async function saveToFirestore(requestId: string, createdAt: Date, uid: string):
         uid: uid,
         createdAt: createdAt
     }
+
+    await setDoc(doc(firestore, `/users/${uid}/images`, requestId), {
+        createdAt: new Date(),
+    }, { merge: true });
     return await setDoc(doc(firestore, `requestIds`, requestId), data, { merge: true });
 }
 
