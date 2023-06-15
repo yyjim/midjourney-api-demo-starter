@@ -1,5 +1,6 @@
 'use client'; // this is a client component 👈🏽
 import axios from 'axios';
+import { Masonry } from 'react-plock';
 import { firestore, auth } from '../db';
 import { sendImagineAPIAndSave } from './api/txt2img';
 import { collection, doc, onSnapshot, setDoc, getDocs } from 'firebase/firestore';
@@ -86,6 +87,21 @@ export default function Home() {
     );
   }
 
+  const ImagesMasonry = () => {
+    return (
+      <Masonry
+        items={imgs}
+        config={{
+          columns: [5],
+          gap: [8],
+        }}
+        render={(item: { imageUrl: string }) => (
+          <img key={item.imageUrl} src={item.imageUrl} style={{ width: "100%", height: "auto" }} />
+        )}
+      />
+    );
+  };
+
   const Form = () => {
     const [text, setText] = useState("")
 
@@ -119,75 +135,42 @@ export default function Home() {
 
     return (
       <>
-        <div>
-          <div className='w-full mx-auto px-20'>
-            <button onClick={handleLogout}>Logout</button>
-          </div>
-          {/* tailwindui.com */}
-          <label
-            htmlFor='email'
-            className='block text-sm font-medium leading-6 text-gray-900'
-          >
-            Prompt
-          </label>
-          <div className='mt-2 flex space-x-2'>
-            {/* (<Form></Form>) */}
-            <input
-              value={text}
-              onChange={e => setText(e.target.value)}
-              className='block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6'
-              placeholder='Enter your prompt here'
-            />
-            <button
-              className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
-              onClick={async () => {
-                console.log(`Submitting my prompt: ${text}`);
-                setLoading(true);
-                await sendImagineAPIAndSave(text, user.uid);
-                // try {
-                //   let headers = {
-                //     'Content-Type': 'application/json',
-                //     Authorization: `Bearer ${AUTH_TOKEN}`,
-                //   };
-
-                //   let r = await axios.post(
-                //     `${endpoint}`,
-                //     {
-                //       cmd: 'imagine',
-                //       msg: text,
-                //     },
-                //     { headers },
-                //   );
-
-                //   console.log(r.data);
-                //   setResponse(JSON.stringify(r.data, null, 2));
-                // } catch (e: any) {
-                //   console.log(e);
-                //   setError(e.message);
-                // }
-                setLoading(false);
-              }}
-            >
-              {loading ? 'Submitting...' : 'Submit'}
-            </button>
-          </div>
-          <pre>Response Message: {response}</pre>
-          Error: {error}
+        <div className='w-full mx-auto'>
+          <button onClick={handleLogout}>Logout</button>
         </div>
-        <div>
-          <h1 className='text-4xl py-8'>These are your images!</h1>
-          <div className='grid grid-cols-3 gap-4'>
+        <div className='mt-2 flex space-x-2'>
+          <input
+            value={text}
+            onChange={e => setText(e.target.value)}
+            className='block w-full'
+            placeholder='Enter your prompt here'
+          />
+          <button
+            className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
+            onClick={async () => {
+              console.log(`Submitting my prompt: ${text}`);
+              setLoading(true);
+              await sendImagineAPIAndSave(text, user.uid);
+              setLoading(false);
+            }}
+          >
+            {loading ? 'Submitting...' : 'Submit'}
+          </button>
+        </div>
+        <div className='mt-2 flex space-x-2'>
+          <ImagesMasonry></ImagesMasonry>
+          {/* <div className='grid grid-cols-3 gap-4'>
             {imgs.map(img => (
               <img src={img.imageUrl} className='w-full' key={img.imageUrl} alt='nothing' />
             ))}
-          </div>
+          </div> */}
         </div>
       </>
     );
   }
 
   return (
-    <div className='container mx-auto h-screen flex flex-col items-center justify-center '>
+    <div className='container mx-auto h-screen flex flex-col items-center'>
       <div className='w-full mx-auto px-20'>
         {user ? (<HomeView></HomeView>) : (<LogInView></LogInView>)}
       </div>
