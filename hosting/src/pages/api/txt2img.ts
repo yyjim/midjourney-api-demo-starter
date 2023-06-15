@@ -5,7 +5,7 @@ import axios from 'axios';
 
 import { NextApiRequest, NextApiResponse } from 'next';
 
-const AUTH_TOKEN = '05ad590a-581b-464e-b355-8db62b8ef189';
+const AUTH_TOKEN = 'f3784831-4389-4905-82ff-3ff7c45d8c23';
 const endpoint = 'https://api.thenextleg.io/v2';
 
 interface ImagineResponse {
